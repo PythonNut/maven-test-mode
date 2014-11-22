@@ -91,8 +91,9 @@ should return the method name."
     (define-key map (kbd  "C-c , v") 'maven-test-file)
     (define-key map (kbd  "C-c , s") 'maven-test-method)
     (define-key map (kbd  "C-c , i") 'maven-test-install)
-    (define-key map (kbd  "C-c , C") 'maven-test-clean-test-all)
+    (define-key map (kbd  "C-c , c") 'maven-test-clean-test-all)
     (define-key map (kbd  "C-c , r") 'recompile)
+    (define-key map (kbd  "C-c , f") 'maven-test-toggle-summary-only-filter)
     (define-key map (kbd  "C-c , t") 'maven-test-toggle-between-test-and-class)
     (define-key map (kbd  "C-c , y") 'maven-test-toggle-between-test-and-class-other-window)
     map))
@@ -123,35 +124,40 @@ should return the method name."
       (maven-test-toggle-between-test-and-class))
     (maven-test-compile (maven-test-file-command))
     (find-file cur-file)))
-
-;;
-;;; Test commands
-;;
+
 (defun maven-test-method ()
   "Run maven test task for current method"
   (interactive)
   (unless (maven-test-is-test-file-p)
     (error "Not visiting test file."))
   (maven-test-compile (maven-test-method-command)))
+
+;;
+;;; Test commands
+;;
 
 (defun maven-test-all-command ()
   (s-concat
    (maven-test-format-task (maven-test--test-task))
+   (maven-test-filter-summary-maybe)
    (maven-test-format-show-surefire-reports)))
 
 (defun maven-test-file-command ()
   (s-concat
    (maven-test-format-task (maven-test--test-task))
+   (maven-test-filter-summary-maybe)
    (maven-test-class-name-from-buffer)
    (maven-test-format-show-surefire-reports)))
 
 (defun maven-test-method-command ()
   (s-concat
    (maven-test-format-task (maven-test--test-task))
+   (maven-test-filter-summary-maybe)
    (maven-test-class-name-from-buffer)
    "#"
    (maven-test-get-prev-test-method-name)
    (maven-test-format-show-surefire-reports)))
+
 
 ;;
 ;;; Command formatting
@@ -187,6 +193,11 @@ should return the method name."
 	(re-search-backward (car rxs) nil t))
       (match-string 1))
      (maven-test--get-first-match (cdr rxs)))))
+
+(defun maven-test-filter-summary-maybe ()
+  (if maven-test-filter-test-result-summary-only
+      " | grep 'Tests run:'"
+    ""))
 
 ;;
 ;;; Toggle between test and class
@@ -248,6 +259,18 @@ visiting a test file, returns it's associated Java class filename"
 
 (defun maven-test-compile (command)
   (compile command 'maven-compilation-mode))
+
+(defvar maven-test-filter-test-result-summary-only nil
+  "if non-nil, shows only test summary results. Good for cluttered output and testing multiple projects.")
+
+(defun maven-test-toggle-summary-only-filter ()
+  "Toggle the value of `maven-test-filter-test-result-summary-only' between nil and t"
+  (interactive)
+  (setq maven-test-filter-test-result-summary-only
+	(if maven-test-filter-test-result-summary-only
+	    nil
+	  t))
+  maven-test-filter-test-result-summary-only)
 
 (define-derived-mode maven-compilation-mode compilation-mode "Maven Test Compilation"
   "Compilation mode for Maven output."

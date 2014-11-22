@@ -30,3 +30,19 @@
       (should (equal
 	       "foobar"
 	       (maven-test--get-first-match regexes))))))
+
+(ert-deftest test-toggle-from-nil ()
+  (setq maven-test-filter-test-result-summary-only nil)
+
+  (maven-test-toggle-summary-only-filter)
+  (should (equal
+	   t
+	   maven-test-filter-test-result-summary-only)))
+
+(ert-deftest test-toggle-from-t ()
+  (setq maven-test-filter-test-result-summary-only t)
+
+  (maven-test-toggle-summary-only-filter)
+  (should (equal
+  	   nil
+  	   maven-test-filter-test-result-summary-only)))
